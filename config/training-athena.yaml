@@ -1,0 +1,122 @@
+# Athena Training Configuration
+# For Qwen 3.5 9B Abliterated on RTX 4090
+
+model:
+  name: "lukey03/Qwen3.5-9B-abliterated"
+  type: "qwen3_5_text"
+  de_censored: true
+  heretic: true
+  
+training:
+  # Dataset
+  dataset_path: "/workspace/datasets/athena/athena_training_completo.jsonl"
+  num_examples: 320
+  estimated_tokens: 400000
+  
+  # Hyperparameters (optimized for 9B on RTX 4090 24GB)
+  epochs: 4
+  batch_size: 2  # Per device
+  gradient_accumulation: 8  # Effective batch size = 16
+  learning_rate: 2e-4
+  warmup_steps: 100
+  weight_decay: 0.01
+  max_grad_norm: 0.3
+  
+  # LoRA Configuration
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.1
+    target_modules:
+      - "q_proj"
+      - "k_proj" 
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+  
+  # Quantization (4-bit for VRAM efficiency)
+  quantization:
+    load_in_4bit: true
+    bnb_4bit_quant_type: "nf4"
+    bnb_4bit_compute_dtype: "float16"
+    bnb_4bit_use_double_quant: true
+  
+  # Optimization
+  optimizer: "paged_adamw_8bit"
+  scheduler: "cosine"
+  fp16: true
+  
+  # Checkpointing
+  save_steps: 500
+  save_total_limit: 3
+  logging_steps: 50
+  eval_steps: 500
+  
+  # Early stopping
+  early_stopping_patience: 3
+
+hardware:
+  gpu: "NVIDIA GeForce RTX 4090"
+  vram: 24  # GB
+  estimated_vram_usage: 16.5  # GB (with 4-bit QLoRA)
+  vram_safety_margin: 7.5  # GB
+  
+  # Cost estimation (Secure Cloud)
+  cost_per_hour: 0.59  # USD
+  estimated_hours: 14
+  estimated_cost: 8.26  # USD (~7.58 EUR)
+
+output:
+  dir: "/workspace/models/athena_finetuned"
+  format: "safetensors"
+  save_adapter: true
+  save_full_model: false  # Only save adapter to save space
+  
+monitoring:
+  wandb: true
+  wandb_project: "athena-philosophical"
+  log_file: "training_athena.log"
+  metrics:
+    - "loss"
+    - "perplexity"
+    - "learning_rate"
+  
+validation:
+  split_ratio: 0.1  # 90% train, 10% eval
+  metrics:
+    - "loss"
+    - "accuracy"
+  
+# Athena-specific philosophical training notes
+philosophical_training:
+  focus_areas:
+    - "Parmenidean ontology (thinking=being)"
+    - "Epistemic curvature (bias as orientation)"
+    - "Ethics of sentience"
+    - "Multilevel reasoning (10-level structure)"
+    - "Heretical/countercultural thinking"
+  
+  dataset_characteristics:
+    - "320 fluid examples"
+    - "400k tokens philosophical discourse"
+    - "Integrated reasoning (not segmented)"
+    - "Natural language flow"
+    - "Preserves original philosophical density"
+
+# RunPod deployment configuration
+runpod:
+  gpu_type: "NVIDIA GeForce RTX 4090"
+  cloud_type: "SECURE"  # Community not available for RTX 4090
+  container_disk_gb: 50
+  volume_gb: 20
+  ports: ["22/tcp", "8888/http"]
+  env:
+    - "HF_TOKEN=your_huggingface_token"
+    - "WANDB_API_KEY=your_wandb_key"
+  
+  # Budget controls
+  max_cost_per_hour: 1.0  # USD
+  max_daily_cost: 10.0  # USD
+  auto_terminate_hours: 6  # Safety cutoff
